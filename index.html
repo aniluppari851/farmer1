@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Farmer Advisory — Realistic Demo</title>
+<style>
+:root {
+  --green: #047857;
+  --accent: #16a34a;
+  --muted: #64748b;
+}
+body {
+  margin:0; font-family: Inter,Segoe UI,Roboto,Arial;
+  background: linear-gradient(180deg,#f0fdf4,#ecfccb);
+  color:#06313a;
+}
+header {
+  background: var(--green); color:white;
+  padding:14px 18px; text-align:center; font-weight:700;
+  display:none; /* hidden until login */
+}
+main {
+  max-width: 1000px; margin: 24px auto; padding:20px;
+  background:white; border-radius:12px; box-shadow:0 10px 30px rgba(2,6,23,0.06);
+  display:none; /* hidden until login */
+}
+h1 { margin:6px 0 0; font-size:18px; }
+.controls { display:flex; gap:12px; flex-wrap:wrap; }
+.col { flex:1; min-width:240px; }
+label { display:block; margin-top:12px; font-weight:700; }
+select,textarea {
+  width:100%; padding:10px; margin-top:8px;
+  border-radius:8px; border:1px solid #cbd5e0; font-size:15px;
+}
+.btn {
+  background: var(--accent); color:white; border:none;
+  padding:10px 14px; border-radius:8px; font-weight:700;
+  cursor:pointer; transition: background-color 0.3s, transform 0.15s;
+  box-shadow:0 4px 8px rgba(22,163,74,0.3); user-select:none;
+}
+.btn:hover { background:#0f9d4a; transform:scale(1.05);}
+.btn:active { transform:scale(0.97);}
+.btn.ghost { background:transparent; border:1px solid rgba(6,49,58,0.08); color:var(--green);}
+.btn.ghost:hover { background:#dff3e3; transform:scale(1.05);}
+.btn.ghost:active { transform:scale(0.97);}
+.response {
+  margin-top:18px; padding:16px; border-radius:10px;
+  background:#f8fff6; border:1px solid #d1f7dc; white-space:pre-line;
+}
+.examples { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.chip {
+  background:#e6f6ee; padding:8px 10px; border-radius:999px;
+  border:1px solid #c9f0d8; cursor:pointer; user-select:none;
+}
+.chip:hover { background:#dff3e3; }
+.small { font-size:13px; color:var(--muted); }
+.footer { font-size:13px; color:var(--muted); text-align:center; margin-top:18px; display:none; /* hidden until login */ }
+.section-title { font-weight:800; color:var(--green); margin:10px 0; }
+
+/* Login overlay */
+#login-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(120deg, #a1c4fd, #c2e9fb, #fbc2eb, #a6c1ee);
+  background-size: 400% 400%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: gradientBG 10s ease infinite;
+  overflow: hidden;
+}
+@keyframes gradientBG {
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* floating leaves */
+.leaf {
+  position: absolute;
+  width: 40px; height: 40px;
+  opacity: 0.8;
+  animation: floatLeaf linear infinite;
+}
+@keyframes floatLeaf {
+  0% {transform: translateY(0) rotate(0deg);}
+  100% {transform: translateY(100vh) rotate(360deg);}
+}
+
+#login-box {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+#login-box h2 { margin-bottom:14px; color:var(--green);}
+#login-box input {
+  width:100%; padding:10px; margin-top:8px; margin-bottom:12px;
+  border-radius:8px; border:1px solid #cbd5e0; font-size:15px;
+}
+
+/* Welcome overlay */
+#welcome-overlay {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.65);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000;
+}
+#welcome-box {
+  background:white; padding:30px; border-radius:12px;
+  text-align:center; max-width:400px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.25);
+}
+#welcome-box h2 { margin:0 0 14px; font-size:20px; color:var(--green);}
+#welcome-box img { width:120px; margin-bottom:15px; }
+</style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+<div id="login-overlay">
+  <div id="login-box">
+    <h2>📱 Farmer Login</h2>
+    <label for="phone">Enter Phone Number</label>
+    <input type="text" id="phone" placeholder="Enter number" required pattern="[0-9]{10}">
+    <button class="btn" onclick="sendOTP()">Send OTP</button>
+    <div id="otp-section" style="display:none;">
+      <label for="otp">Enter OTP</label>
+      <input type="text" id="otp" placeholder="Enter OTP">
+      <button class="btn ghost" onclick="verifyOTP()">Verify OTP</button>
+    </div>
+  </div>
+</div>
+
+<div id="welcome-overlay" style="display: none;">
+  <div id="welcome-box">
+    <img src="https://tse2.mm.bing.net/th/id/OIP.azG7Um7P7ttgAzVX0fU2tQHaHa?pid=Api&P=0&h=180" alt="Farmer">
+    <h2>👨‍🌾 Helloooo Farmer!!😁</h2>
+    <p>Welcome! I will guide you with crop, soil, pest and market advice.</p>
+    <button id="enterBtn" class="btn">Hello, I’m ready to enter</button>
+  </div>
+</div>
+
+<header>🌾 AI-Style Farmer Advisory — Agriculture · FoodTech · Rural Development</header>
+<main id="main-app">
+<h1 id="main-title">Ask a question — get detailed, practical advisory 🌾</h1> <br><br>
+<div class="controls">
+  <div class="col">
+    <label id="language-label" for="language">Choose Language</label>
+    <select id="language">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="te">Telugu</option>
+      <option value="ur">Urdu</option>
+    </select>
+    <label id="topic-label" for="topic">Choose Query Type</label>
+    <select id="topic">
+      <option value="crop">Crop Related</option>
+      <option value="soil">Soil & Fertilizer</option>
+      <option value="weather">Weather</option>
+      <option value="pest">Pest & Disease</option>
+      <option value="irrigation">Irrigation</option>
+      <option value="market">Market Info</option>
+    </select>
+    <label id="examples-label" class="small">Quick examples</label>
+    <div id="examples" class="examples"></div>
+  </div>
+  <div class="col">
+    <label id="question-label" for="question">Type or speak your question</label>
+    <textarea id="question" rows="5" placeholder="E.g. 'Best irrigation for tomato in summer?'"></textarea>
+    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+      <button id="askBtn" class="btn">Get Advisory</button>
+      <button id="voiceBtn" class="btn ghost">🎤 Speak</button>
+      <button id="readBtn" class="btn ghost">🔊 Read</button>
+      <button id="copyBtn" class="btn ghost">📋 Copy</button>
+    </div>
+  </div>
+</div>
+<div id="response" class="response" style="display:none"></div>
+<div id="tip-text" class="small" style="margin-top:12px"></div>
+</main>
+<div id="footer-text" class="footer"></div>
+
+<script>
+// original JS fully intact
+const languageEl = document.getElementById('language');
+const topicEl = document.getElementById('topic');
+const examplesEl = document.getElementById('examples');
+const qEl = document.getElementById('question');
+const responseEl = document.getElementById('response');
+const mainTitle = document.getElementById('main-title');
+const languageLabel = document.getElementById('language-label');
+const topicLabel = document.getElementById('topic-label');
+const examplesLabel = document.getElementById('examples-label');
+const questionLabel = document.getElementById('question-label');
+const tipText = document.getElementById('tip-text');
+const footerText = document.getElementById('footer-text');
+const askBtn = document.getElementById('askBtn');
+const voiceBtn = document.getElementById('voiceBtn');
+const readBtn = document.getElementById('readBtn');
+const copyBtn = document.getElementById('copyBtn');
+
+let lastPlain = '';
+let currentLang = languageEl.value || 'en';
+
+const UItext={
+  en:{mainTitle:'Ask a question — get detailed, practical advisory',language:'Choose Language',topic:'Choose Query Type',examples:'Quick examples',question:'Type or speak your question',tip:'Tip: Include crop name and short context (soil, season, symptom).',footer:'For real issues, contact your local agriculture officer.',btn:'Get Advisory',questionPlaceholder:"E.g. 'Best irrigation for tomato in summer?'",speakBtn:'🎤 Speak',readBtn:'🔊 Read',copyBtn:'📋 Copy',topicOptions:['Crop Related','Soil & Fertilizer','Weather','Pest & Disease','Irrigation','Market Info']},
+  hi:{mainTitle:'एक प्रश्न पूछें — विस्तृत और व्यावहारिक सलाह प्राप्त करें',language:'भाषा चुनें',topic:'प्रश्न प्रकार चुनें',examples:'त्वरित उदाहरण',question:'अपना प्रश्न टाइप करें या बोलें',tip:'बेहतर सलाह के लिए फसल का नाम और संक्षिप्त संदर्भ शामिल करें।',footer:'वास्तविक समस्या के लिए अपने स्थानीय कृषि अधिकारी से संपर्क करें।',btn:'सलाह प्राप्त करें',questionPlaceholder:"उदाहरण: 'टमाटर के लिए सबसे अच्छा सिंचाई तरीका?'",speakBtn:'🎤 बोलें',readBtn:'🔊 सुनें',copyBtn:'📋 कॉपी',topicOptions:['फसल संबंधित','मिट्टी और उर्वरक','मौसम','कीट और रोग','सिंचाई','बाजार जानकारी']},
+  te:{mainTitle:'ఒక ప్రశ్న అడగండి — వివరమైన సలహాలు పొందండి',language:'భాషను ఎంచుకోండి',topic:'ప్రశ్న రకం ఎంచుకోండి',examples:'త్వరిత ఉదాహరణలు',question:'మీ ప్రశ్నను టైప్ చేయండి లేదా మాట్లాడు',tip:'మంచి సలహా కోసం పంట పేరు, సీజన్, లేదా లక్షణాలు చేర్చండి.',footer:'నిజమైన సమస్యల కోసం మీ స్థానిక వ్యవసాయ అధికారిని సంప్రదించండి.',btn:'సలహా పొందండి',questionPlaceholder:"ఉదాహరణ: 'టమోటాకు ఉత్తమ నీరు ఎప్పుడు?'",speakBtn:'🎤 మాట్లాడు',readBtn:'🔊 విన్నుకోండి',copyBtn:'📋 కాపీ',topicOptions:['పంట సంబంధిత','మట్టి & ఎరువులు','వాతావరణం','కీట & వ్యాధి','సింچకా విధానం','మార్కెట్ సమాచారం']},
+  ur:{mainTitle:'سوال پوچھیں — تفصیلی اور عملی مشورہ حاصل کریں',language:'زبان منتخب کریں',topic:'سوال کی قسم منتخب کریں',examples:'جلدی مثالیں',question:'اپنا سوال لکھیں یا بولیں',tip:'بہتر مشورے کے لیے فصل کا نام اور مختصر سیاق شامل کریں۔',footer:'حقیقی مسائل کے لیے اپنے مقامی زرعی افسر سے رابطہ کریں۔',btn:'مشورہ حاصل کریں',questionPlaceholder:"مثال: 'ٹماٹر کے لیے بہترین آبپاشی کب ہے؟'",speakBtn:'🎤 بولیں',readBtn:'🔊 سنیں',copyBtn:'📋 کاپی',topicOptions:['فصل سے متعلق','مٹی اور کھاد','موسم','کیڑوں اور بیماری','آبپاشی','مارکیٹ کی معلومات']}
+};
+
+const EXAMPLES={
+  crop:["Best variety of rice in summer?","How to increase wheat yield?"],
+  soil:["Which fertilizer for cotton?","How to improve sandy soil?"],
+  weather:["Is rain expected tomorrow?","Best crops for dry climate?"],
+  pest:["How to control bollworm?","Natural remedy for aphids?"],
+  irrigation:["Best irrigation for tomato?","Drip vs flood irrigation?"],
+  market:["Current price of onions?","Where to sell maize at good price?"]
+};
+
+const EXAMPLE_TRANSLATIONS = {
+  hi:{ "Best variety of rice in summer?":"गर्मियों में चावल की सबसे अच्छी किस्म?","How to increase wheat yield?":"गेहूं की उपज कैसे बढ़ाएं?","Which fertilizer for cotton?":"कपास के लिए कौन सा उर्वरक?","How to improve sandy soil?":"रेतीली मिट्टी कैसे सुधारें?","Is rain expected tomorrow?":"क्या कल बारिश होने की संभावना है?","Best crops for dry climate?":"सूखे मौसम के लिए सर्वोत्तम फसलें?","How to control bollworm?":"बॉलवर्म को कैसे नियंत्रित करें?","Natural remedy for aphids?":"एपिड्स के लिए प्राकृतिक उपचार?","Best irrigation for tomato?":"टमाटर के लिए सबसे अच्छा सिंचाई तरीका?","Drip vs flood irrigation?":"ड्रिप बनाम फ्लड सिंचाई?","Current price of onions?":"प्याज की वर्तमान कीमत?","Where to sell maize at good price?":"मकई अच्छी कीमत पर कहाँ बेचें?" },
+  te:{ "Best variety of rice in summer?":"వేసవిలో బియ్యం ఉత్తమ జాతి?","How to increase wheat yield?":"గోధుమ ఉత్పత్తిని ఎలా పెంచాలి?","Which fertilizer for cotton?":"పత్తి కోసం ఏ ఎరువు?","How to improve sandy soil?":"మట్టిని ఎలా మెరుగుపరచాలి?","Is rain expected tomorrow?":"రేపు వర్షం వస్తుందా?","Best crops for dry climate?":"ఎండ మౌసంలో ఉత్తమ పంటలు?","How to control bollworm?":"బొల్వర్మ్ ను ఎలా నియంత్రించాలి?","Natural remedy for aphids?":"ఏఫిడ్స్ కోసం సహజ చికిత్స?","Best irrigation for tomato?":"టమోటాకు ఉత్తమ నీరు?","Drip vs flood irrigation?":"డ్రిప్ వర్సెస్ ఫ్లడ్ ఇర్రిగేషన్?","Current price of onions?":"ఉల్లిపాయల ప్రస్తుత ధర?","Where to sell maize at good price?":"మక్కాను మంచి ధరకు ఎక్కడ అమ్మాలి?" },
+  ur:{ "Best variety of rice in summer?":"گرمیوں میں چاول کی بہترین قسم؟","How to increase wheat yield?":"گندم کی پیداوار کیسے بڑھائیں؟","Which fertilizer for cotton?":"کپاس کے لیے کون سا کھاد؟","How to improve sandy soil?":"ریتلی زمین کو کیسے بہتر بنائیں؟","Is rain expected tomorrow?":"کیا کل بارش متوقع ہے؟","Best crops for dry climate?":"خشک موسم کے لیے بہترین فصلیں؟","How to control bollworm?":"بولورم کو کیسے کنٹرول کریں؟","Natural remedy for aphids?":"ایفڈز کے لیے قدرتی علاج؟","Best irrigation for tomato?":"ٹماٹر کے لیے بہترین آبپاشی؟","Drip vs flood irrigation?":"ڈریپ بمقابلہ فلڈ آبپاشی؟","Current price of onions?":"پیاز کی موجودہ قیمت؟","Where to sell maize at good price?":"مکئی کہاں اچھی قیمت پر فروخت کریں؟" }
+};
+
+function updateUIText(lang){
+  const txt = UItext[lang] || UItext.en;
+  mainTitle.textContent = txt.mainTitle;
+  languageLabel.textContent = txt.language;
+  topicLabel.textContent = txt.topic;
+  examplesLabel.textContent = txt.examples;
+  questionLabel.textContent = txt.question;
+  tipText.textContent = txt.tip;
+  footerText.textContent = txt.footer;
+  qEl.placeholder = txt.questionPlaceholder;
+  askBtn.textContent = txt.btn;
+  voiceBtn.textContent = txt.speakBtn;
+  readBtn.textContent = txt.readBtn;
+  copyBtn.textContent = txt.copyBtn;
+
+  topicEl.innerHTML = '';
+  txt.topicOptions.forEach((opt,i)=>{
+    const option = document.createElement('option');
+    option.value = Object.keys(EXAMPLES)[i];
+    option.textContent = opt;
+    topicEl.appendChild(option);
+  });
+}
+
+function updateExamples(topic){
+  examplesEl.innerHTML='';
+  (EXAMPLES[topic]||[]).forEach(ex=>{
+    const chip = document.createElement('div');
+    chip.className='chip';
+    const lang = languageEl.value;
+    chip.textContent = EXAMPLE_TRANSLATIONS[lang]?.[ex] || ex;
+    chip.onclick = ()=>{ qEl.value = chip.textContent; handleAsk(); };
+    examplesEl.appendChild(chip);
+  });
+}
+
+async function handleAsk(){
+  const question=qEl.value.trim();
+  if(!question){ alert('Please type a question!'); return; }
+  responseEl.style.display='block';
+  responseEl.innerHTML='Fetching advisory...';
+  try{
+    const res = await fetch('/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:question,lang:languageEl.value,topic:topicEl.value})
+    });
+    if(res.ok){
+      const data = await res.json();
+      const text = (data.reply||'').split('\n').join('\n\n');
+      responseEl.innerHTML=text;
+      lastPlain=text;
+    }
+  }catch(e){
+    responseEl.innerHTML="⚠️ Failed to fetch advisory.";
+    lastPlain="";
+  }
+}
+
+askBtn.onclick=handleAsk;
+copyBtn.onclick=()=>{navigator.clipboard.writeText(lastPlain); alert('Copied!');};
+voiceBtn.onclick=()=>{
+  const r=new (window.SpeechRecognition||window.webkitSpeechRecognition)();
+  const langMap={en:'en-US',hi:'hi-IN',te:'te-IN',ur:'ur-PK'};
+  r.lang=langMap[languageEl.value]||'en-US';
+  r.start();
+  r.onresult=(e)=>{qEl.value=e.results[0][0].transcript; handleAsk();};
+};
+readBtn.onclick=()=>{
+  const u=new SpeechSynthesisUtterance(lastPlain);
+  const langMap={en:'en-US',hi:'hi-IN',te:'te-IN',ur:'ur-PK'};
+  u.lang=langMap[languageEl.value]||'en-US';
+  speechSynthesis.speak(u);
+};
+
+languageEl.onchange=()=>{ currentLang=languageEl.value; updateUIText(currentLang); updateExamples(topicEl.value); };
+topicEl.onchange=()=>updateExamples(topicEl.value);
+
+updateUIText(currentLang);
+updateExamples(topicEl.value);
+
+// OTP Mock
+function sendOTP(){
+  document.getElementById('otp-section').style.display='block';
+  alert("OTP sent (mock)");
+}
+function verifyOTP(){
+  const otp=document.getElementById('otp').value.trim();
+  if(otp==="1234"){  // mock OTP
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('welcome-overlay').style.display='flex';
+  } else {
+    alert("Invalid OTP, try 1234 for demo");
+  }
+}
+
+document.getElementById('enterBtn').onclick=()=>{
+  document.getElementById('welcome-overlay').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.querySelector('header').style.display='block';
+  document.querySelector('.footer').style.display='block';
+};
+
+// add floating leaves
+for(let i=0;i<8;i++){
+  const leaf = document.createElement('div');
+  leaf.className='leaf';
+  leaf.style.left=Math.random()*100+'%';
+  leaf.style.animationDuration=(5+Math.random()*5)+'s';
+  leaf.style.animationDelay=(Math.random()*5)+'s';
+  document.getElementById('login-overlay').appendChild(leaf);
+}
+</script>
+</body>
+</html>
